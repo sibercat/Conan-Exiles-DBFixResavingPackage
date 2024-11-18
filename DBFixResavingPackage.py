@@ -1,4 +1,4 @@
-# v1.0.5
+# v1.0.6
 import os
 import re
 import subprocess
@@ -322,53 +322,44 @@ class BlueprintFixer:
                             self.error_sources[pattern_name] += 1
 
     def generate_sql(self, blueprint_path: str) -> list[str]:
-        """Generate SQL statements for a single blueprint."""
-        return [
-            f"-- Cleaning up {blueprint_path}",
-            f"DELETE FROM buildable_health WHERE object_id IN(SELECT DISTINCT object_id FROM buildings WHERE object_id IN (SELECT DISTINCT object_id FROM properties WHERE object_id IN (SELECT id FROM (SELECT id, trim(substr(class, INSTR(class, '/BP'), length(class)), '/') AS name FROM actor_position WHERE class LIKE '{blueprint_path}%'))));",
-            f"DELETE FROM buildings WHERE object_id IN(SELECT DISTINCT object_id FROM properties WHERE object_id IN (SELECT id FROM (SELECT id, trim(substr(class, INSTR(class, '/BP'), length(class)), '/') AS name FROM actor_position WHERE class LIKE '{blueprint_path}%')));",
-            f"DELETE FROM properties WHERE object_id IN(SELECT id FROM (SELECT id, trim(substr(class, INSTR(class, '/BP'), length(class)), '/') AS name FROM actor_position WHERE class LIKE '{blueprint_path}%'));",
-            f"DELETE FROM actor_position WHERE class LIKE '{blueprint_path}%';",
-            "--"
-        ]
+       """Generate SQL statements for a single blueprint."""
+       return [
+           f"-- Cleaning up {blueprint_path}",
+           f"DELETE FROM buildable_health WHERE object_id IN (SELECT object_id FROM buildings WHERE object_id IN (SELECT object_id FROM properties WHERE object_id IN (SELECT id FROM actor_position WHERE class LIKE '{blueprint_path}%')));",
+           f"DELETE FROM buildings WHERE object_id IN (SELECT object_id FROM properties WHERE object_id IN (SELECT id FROM actor_position WHERE class LIKE '{blueprint_path}%'));",
+           f"DELETE FROM properties WHERE object_id IN (SELECT id FROM actor_position WHERE class LIKE '{blueprint_path}%');",
+           f"DELETE FROM actor_position WHERE class LIKE '{blueprint_path}%';",
+           "--"  # Separator between matches
+       ]
 
     def write_sql_file(self) -> None:
-            """Write SQL statements to output file."""
-            # Only create the file if we have blueprints to process
-            if not self.blueprint_paths:
-                print("No missing blueprints found. SQL file will not be generated.")
-                return
+        if not self.blueprint_paths:
+            print("No missing blueprints found. SQL file will not be generated.")
+            return
 
-            # Remove existing file if it exists
-            if os.path.exists(self.config.output_file):
-                print(f"File '{self.config.output_file}' already exists and will be deleted.")
-                os.remove(self.config.output_file)
+        if os.path.exists(self.config.output_file):
+            print(f"File '{self.config.output_file}' already exists and will be deleted.")
+            os.remove(self.config.output_file)
 
-            self.sql_statements = []
-            with open(self.config.output_file, 'w') as writer:
-                # Start with transaction
-                writer.write("BEGIN TRANSACTION;\n")
-                
-                for blueprint_path in sorted(self.blueprint_paths):
-                    print(f"Found missing blueprint: {blueprint_path}")  # Removed source info
-                    statements = self.generate_sql(blueprint_path)
-                    for sql in statements:
-                        writer.write(f"{sql}\n")
-                        # Store executable statements for database execution
-                        if sql.startswith("DELETE"):
-                            self.sql_statements.append(sql)
+        self.sql_statements = []
+        with open(self.config.output_file, 'w') as writer:
+            for blueprint_path in sorted(self.blueprint_paths):
+                print(f"Found missing blueprint: {blueprint_path}")
+                statements = self.generate_sql(blueprint_path)
+                for sql in statements:
+                    writer.write(f"{sql}\n")
+                    if sql.startswith("DELETE"):
+                        self.sql_statements.append(sql)
 
-                # Add optimization commands
-                optimization_commands = [
-                    "COMMIT;",
-                    "VACUUM;",
-                    "REINDEX;",
-                    "ANALYZE;",
-                    "PRAGMA integrity_check;"
-                ]
-                for cmd in optimization_commands:
-                    writer.write(f"{cmd}\n")
-                    self.sql_statements.append(cmd)
+            # Add optimization commands
+            optimization_commands = [
+                "PRAGMA optimize;",
+                "VACUUM;",
+                "PRAGMA integrity_check;"
+            ]
+            for cmd in optimization_commands:
+                writer.write(f"{cmd}\n")
+                self.sql_statements.append(cmd)
 
     def execute_sql_on_database(self) -> bool:
         """Execute the generated SQL statements on the database using sqlite3.exe."""
