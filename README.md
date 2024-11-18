@@ -15,4 +15,4 @@ Seems to have started after Funcoms barkeeper hotfix.
 
 In short **Some leftover placable actors remained in the world - after they have been removed or renamed in the mod by the mod author, or mod was removed from the server but placable actor was placed by a user prior.
 
-In theory server should clean this actors up, but seems to be stuck on SearchForPackageOnDisk.
+In theory server should clean this actors up or skip the search, but seems to be stuck on SearchForPackageOnDisk.
