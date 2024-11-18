@@ -27,7 +27,7 @@ def print_header():
     print("2. Add the logging configuration lines")
     print("3. Save Engine.ini")
     print("4. Start your server")
-    print("5. Run this tool after encountering missing blueprint errors or after full server start.")
+    print("5. Run this tool after server has fully loaded.")
     print("6. Server needs to be stopped before modifying game.db")
     print("\nNote: Without these logging settings, the tool won't be able to detect missing blueprints.")
     print("=" * 80)
