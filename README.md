@@ -4,7 +4,7 @@ The script is based on [FuncomDBFixGenerator
 ===========================================================================
 Basically the script to fix:
 <p>LogPackageName:Warning: String asset reference "None" is in short form, which is unsupported and -- even if valid -- resolving it will be really slow.</p>
-LogPackageName:Warning: Please consider resaving package in order to speed-up loading.
+<p>LogPackageName:Warning: Please consider resaving package in order to speed-up loading.</p>
 
 Script is looking for pattern  **Couldn't find file for package BP_ requested by async loading code. NameToLoad:**
 
