@@ -1,8 +1,8 @@
-# v1.0.4
+# v1.0.5
 import os
 import re
 import subprocess
-from typing import Set, Optional, List
+from typing import Set, Optional, List, Dict
 from dataclasses import dataclass
 
 def print_header():
@@ -39,13 +39,27 @@ class Config:
     output_file: str = "CleanUpScript.sql"
     database_file: str = "game.db"
     sqlite_exe: str = "sqlite3.exe"
-    error_pattern: str = r'LogStreaming:Error: Couldn\'t find file for package (/Game/Mods/.*?) requested by async loading code\.'
+    error_patterns: Dict[str, str] = None
+    selected_pattern: str = "standard_error"  # Default pattern
+
+    def __post_init__(self):
+        self.error_patterns = {
+            'standard_error': r'LogStreaming:Error: Couldn\'t find file for package (/Game/Mods/.*?) requested by async loading code\.',
+            'async_loading': r'LogStreaming:Error: Couldn\'t find file for package (/Game/Mods/.*?) requested by async loading code\.',
+            # Updated to match exact C# pattern
+            'nametoload': r'\[\d+\.\d+\.\d+-\d+\.\d+\.\d+\.\d+\].* NameToLoad: (.*)\n.*\n\[\d+\.\d+\.\d+-\d+\.\d+\.\d+\.\d+\].* String asset reference \"None\".*slow\.'
+        }
 
 class BlueprintFixer:
     def __init__(self, config: Config):
         self.config = config
         self.blueprint_paths: Set[str] = set()
         self.sql_statements: List[str] = []
+        self.error_sources: Dict[str, int] = {
+            'standard_error': 0,
+            'async_loading': 0,
+            'nametoload': 0
+        }
 
     def find_log_file(self) -> bool:
         """Find ConanSandbox.log and update config path."""
@@ -214,17 +228,98 @@ class BlueprintFixer:
                 
         return True
 
-    def extract_blueprints(self, content: str) -> None:
-        """Extract blueprint paths from log content."""
-        chunks = content.split('String asset reference "None"')
+    def choose_pattern(self) -> bool:
+        """Let user choose which error pattern to use."""
+        print("\nAvailable error patterns:")
+        print("1. Standard Error Pattern (String asset reference None chunk method)")
+        print("2. Async Loading Pattern (using direct matching)")
+        print("3. NameToLoad Pattern (Based on FuncomDBFixGenerator By VoidEssy C# style)")
+        print("4. All Patterns")
+        print("5. Standard + Async Patterns")
         
-        for chunk in chunks[:-1]:
-            lines = chunk.split('\n')
-            for line in lines[-5:]:
-                match = re.search(self.config.error_pattern, line)
-                if match:
-                    self.blueprint_paths.add(match.group(1).strip())
-                    break
+        choice = input("\nChoose pattern (1-5) [Press Enter for default]: ").strip()
+        
+        if not choice:  # If user just presses Enter
+            self.config.selected_pattern = "standard_error"
+            print("Using default pattern (Standard Error with original method)")
+            return True
+            
+        if choice == "1":
+            self.config.selected_pattern = "standard_error"
+        elif choice == "2":
+            self.config.selected_pattern = "async_loading"
+        elif choice == "3":
+            self.config.selected_pattern = "nametoload"
+        elif choice == "4":
+            self.config.selected_pattern = "all"
+        elif choice == "5":
+            self.config.selected_pattern = "standard_async"
+        else:
+            print("Invalid choice. Using default pattern (Standard Error).")
+            self.config.selected_pattern = "standard_error"
+        
+        print(f"Using pattern: {self.config.selected_pattern}")
+        return True
+
+    def extract_blueprints(self, content: str) -> None:
+        """Extract blueprint paths from log content using selected pattern and method."""
+        if self.config.selected_pattern == "standard_error":
+            # Use old chunking method for standard_error
+            chunks = content.split('String asset reference "None"')
+            for chunk in chunks[:-1]:
+                lines = chunk.split('\n')
+                for line in lines[-5:]:
+                    match = re.search(self.config.error_patterns['standard_error'], line)
+                    if match:
+                        self.blueprint_paths.add(match.group(1).strip())
+                        self.error_sources['standard_error'] += 1
+                        break
+        elif self.config.selected_pattern == "nametoload":
+            # Use exact C# matching method for nametoload
+            matches = re.finditer(self.config.error_patterns['nametoload'], content, re.MULTILINE | re.DOTALL)
+            for match in matches:
+                blueprint_path = match.group(1).strip().replace('\r', '')  # Added \r removal like C# version
+                if blueprint_path:
+                    self.blueprint_paths.add(blueprint_path)
+                    self.error_sources['nametoload'] += 1
+        else:
+            # Use direct matching for other patterns
+            patterns_to_use = {}
+            if self.config.selected_pattern == "all":
+                patterns_to_use = self.config.error_patterns
+            elif self.config.selected_pattern == "standard_async":
+                patterns_to_use = {
+                    'async_loading': self.config.error_patterns['async_loading'],
+                    'standard_error': self.config.error_patterns['standard_error']
+                }
+            else:
+                patterns_to_use = {
+                    self.config.selected_pattern: self.config.error_patterns[self.config.selected_pattern]
+                }
+
+            # Process selected patterns
+            for pattern_name, pattern in patterns_to_use.items():
+                if pattern_name == 'standard_error':
+                    # Use chunking method for standard_error even in combined modes
+                    chunks = content.split('String asset reference "None"')
+                    for chunk in chunks[:-1]:
+                        lines = chunk.split('\n')
+                        for line in lines[-5:]:
+                            match = re.search(pattern, line)
+                            if match:
+                                self.blueprint_paths.add(match.group(1).strip())
+                                self.error_sources[pattern_name] += 1
+                                break
+                else:
+                    # Use direct matching for other patterns
+                    matches = re.finditer(pattern, content, re.MULTILINE | re.DOTALL)
+                    for match in matches:
+                        blueprint_path = match.group(1).strip()
+                        if pattern_name == 'nametoload':
+                            blueprint_path = blueprint_path.replace('\r', '')
+                        if blueprint_path:
+                            self.blueprint_paths.add(blueprint_path)
+                            self.error_sources[pattern_name] += 1
 
     def generate_sql(self, blueprint_path: str) -> list[str]:
         """Generate SQL statements for a single blueprint."""
@@ -238,41 +333,42 @@ class BlueprintFixer:
         ]
 
     def write_sql_file(self) -> None:
-        """Write SQL statements to output file."""
-        # Only create the file if we have blueprints to process
-        if not self.blueprint_paths:
-            print("No missing blueprints found. SQL file will not be generated.")
-            return
+            """Write SQL statements to output file."""
+            # Only create the file if we have blueprints to process
+            if not self.blueprint_paths:
+                print("No missing blueprints found. SQL file will not be generated.")
+                return
 
-        # Remove existing file if it exists
-        if os.path.exists(self.config.output_file):
-            print(f"File '{self.config.output_file}' already exists and will be deleted.")
-            os.remove(self.config.output_file)
+            # Remove existing file if it exists
+            if os.path.exists(self.config.output_file):
+                print(f"File '{self.config.output_file}' already exists and will be deleted.")
+                os.remove(self.config.output_file)
 
-        self.sql_statements = []
-        with open(self.config.output_file, 'w') as writer:
-            # Start with transaction
-            writer.write("BEGIN TRANSACTION;\n")
-            
-            for blueprint_path in sorted(self.blueprint_paths):
-                print(f"Found missing blueprint: {blueprint_path}")
-                statements = self.generate_sql(blueprint_path)
-                for sql in statements:
-                    writer.write(f"{sql}\n")
-                    # Store executable statements for database execution
-                    if sql.startswith("DELETE"):
-                        self.sql_statements.append(sql)
+            self.sql_statements = []
+            with open(self.config.output_file, 'w') as writer:
+                # Start with transaction
+                writer.write("BEGIN TRANSACTION;\n")
+                
+                for blueprint_path in sorted(self.blueprint_paths):
+                    print(f"Found missing blueprint: {blueprint_path}")  # Removed source info
+                    statements = self.generate_sql(blueprint_path)
+                    for sql in statements:
+                        writer.write(f"{sql}\n")
+                        # Store executable statements for database execution
+                        if sql.startswith("DELETE"):
+                            self.sql_statements.append(sql)
 
-            # Add optimization commands
-            optimization_commands = [
-                "COMMIT;",
-                "PRAGMA optimize;",
-                "VACUUM;",
-                "PRAGMA integrity_check;"
-            ]
-            for cmd in optimization_commands:
-                writer.write(f"{cmd}\n")
-                self.sql_statements.append(cmd)
+                # Add optimization commands
+                optimization_commands = [
+                    "COMMIT;",
+                    "VACUUM;",
+                    "REINDEX;",
+                    "ANALYZE;",
+                    "PRAGMA integrity_check;"
+                ]
+                for cmd in optimization_commands:
+                    writer.write(f"{cmd}\n")
+                    self.sql_statements.append(cmd)
 
     def execute_sql_on_database(self) -> bool:
         """Execute the generated SQL statements on the database using sqlite3.exe."""
@@ -337,10 +433,21 @@ class BlueprintFixer:
             if not self.validate_files():
                 return None
 
-            with open(self.config.input_file, 'r') as file:
+            if not self.choose_pattern():
+                return None
+
+            with open(self.config.input_file, 'r', encoding='utf-8', errors='ignore') as file:
                 content = file.read()
 
-            print("Searching for missing blueprint errors...")
+            pattern_desc = {
+                "all": "all patterns",
+                "standard_async": "Standard + Async patterns",
+                "standard_error": "Standard Error pattern",
+                "async_loading": "Async Loading pattern",
+                "nametoload": "NameToLoad pattern"
+            }
+
+            print(f"\nSearching for missing blueprint errors using {pattern_desc[self.config.selected_pattern]}...")
             self.extract_blueprints(content)
             
             if not self.blueprint_paths:
@@ -350,6 +457,13 @@ class BlueprintFixer:
             self.write_sql_file()
             print(f"\nGenerated SQL script in file: '{self.config.output_file}'")
             print(f"Found {len(self.blueprint_paths)} unique missing blueprints")
+            
+            # Show error pattern statistics at the end only
+            if self.config.selected_pattern in ["all", "standard_async"]:
+                print("\nDetection Statistics:")
+                for source, count in self.error_sources.items():
+                    if count > 0:
+                        print(f"- {source}: {count} matches")
             
             # Ask about database execution
             self.execute_sql_on_database()
