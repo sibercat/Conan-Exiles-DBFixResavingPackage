@@ -12,7 +12,7 @@ Basically the script is to fix:
 
 Script is looking for pattern  **LogStreaming:Error: Couldn't find file for package (.*?) requested by async loading code.'**
 
-![alt text](https://cdn.discordapp.com/attachments/1077995857108017344/1307897879813161001/image.png?ex=673bfa52&is=673aa8d2&hm=3275126fc46f2da90ba07f63793dab153ab804c22fe2382917a0d5259b4d156a&)
+![alt text](https://cdn.discordapp.com/attachments/1077995857108017344/1307945844544376947/image.png?ex=673c26fd&is=673ad57d&hm=fa2ca703ed8236b92f35b73a55c24f1a15d3c1c0ded460727a61337efd54f1d0&)
 
 Why this is happening ?
 Seems to have started after Funcoms barkeeper hotfix.
