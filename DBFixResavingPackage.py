@@ -1,4 +1,4 @@
-# v1.0.2
+# v1.0.4
 import os
 import re
 import subprocess
@@ -39,7 +39,7 @@ class Config:
     output_file: str = "CleanUpScript.sql"
     database_file: str = "game.db"
     sqlite_exe: str = "sqlite3.exe"
-    error_pattern: str = r'LogStreaming:Error: Couldn\'t find file for package (.*?) requested by async loading code\.'
+    error_pattern: str = r'LogStreaming:Error: Couldn\'t find file for package (/Game/Mods/.*?) requested by async loading code\.'
 
 class BlueprintFixer:
     def __init__(self, config: Config):
