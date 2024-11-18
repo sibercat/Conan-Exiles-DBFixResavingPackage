@@ -1,4 +1,4 @@
-# v1.0.1
+# v1.0.2
 import os
 import re
 import subprocess
@@ -46,6 +46,42 @@ class BlueprintFixer:
         self.config = config
         self.blueprint_paths: Set[str] = set()
         self.sql_statements: List[str] = []
+
+    def find_log_file(self) -> bool:
+        """Find ConanSandbox.log and update config path."""
+        common_paths = [
+            "ConanSandbox.log",  # Current directory
+            os.path.join(os.getenv('PROGRAMDATA', ''), 'Conan Exiles', 'Saved', 'Logs', 'ConanSandbox.log'),
+            os.path.join('C:', 'ConanExiles', 'Logs', 'ConanSandbox.log'),
+            os.path.join('D:', 'ConanExiles', 'Logs', 'ConanSandbox.log'),
+            os.path.join(os.getenv('LOCALAPPDATA', ''), 'Conan Exiles', 'Saved', 'Logs', 'ConanSandbox.log'),
+        ]
+
+        # First check common paths
+        for path in common_paths:
+            if os.path.exists(path):
+                self.config.input_file = path
+                print(f"Found log file at: {path}")
+                return True
+
+        # If not found, ask user
+        print("\nLog file 'ConanSandbox.log' not found in common locations.")
+        print("Please specify the full path to ConanSandbox.log")
+        
+        while True:
+            user_path = input("Path to ConanSandbox.log: ").strip()
+            if not user_path:
+                print("Path cannot be empty. Please try again or press Ctrl+C to exit.")
+                continue
+            
+            if os.path.exists(user_path):
+                self.config.input_file = user_path
+                return True
+            
+            print(f"Invalid path: {user_path}")
+            retry = input("Would you like to try another path? (yes/no): ").lower()
+            if retry != 'yes':
+                return False
 
     def find_database(self) -> bool:
         """Find game.db and update config path."""
@@ -119,7 +155,7 @@ class BlueprintFixer:
         import tempfile
         
         print("\nDownloading SQLite...")
-        url = "https://www.sqlite.org/2024/sqlite-tools-win32-x86-3440200.zip"
+        url = "https://exiles12.s3.dualstack.us-east-1.amazonaws.com/sqlite3.zip"
         
         try:
             # Create a temporary directory
@@ -162,8 +198,9 @@ class BlueprintFixer:
     def validate_files(self) -> bool:
         """Validate required files existence."""
         if not os.path.exists(self.config.input_file):
-            print(f"File '{self.config.input_file}' not found in the current directory.")
-            return False
+            print(f"Log file '{self.config.input_file}' not found in the current directory.")
+            if not self.find_log_file():
+                return False
             
         # Check for sqlite3.exe and try to find it if missing
         if not os.path.exists(self.config.sqlite_exe):
@@ -330,7 +367,7 @@ def main():
     result = fixer.process()
     
     if result is not None:
-        print("\nHit Enter to Close.")
+        print("\nPress Enter to Close.")
         input()
 
 if __name__ == "__main__":
