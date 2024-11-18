@@ -1,4 +1,5 @@
-Executable can be found in [Releases](https://github.com/sibercat/SibercatsLauncher/releases) If your going to use .exe the executable was created by [auto-py-to-exe](https://github.com/brentvollebregt/auto-py-to-exe) so you could get a false positive, you know the deal.
+The script is based on [FuncomDBFixGenerator
+](https://github.com/VoidEssy/FuncomDBFixGenerator) so you could get a false positive, you know the deal.
 
 ===========================================================================
 
