@@ -1,5 +1,5 @@
 The script is based on [FuncomDBFixGenerator
-](https://github.com/VoidEssy/FuncomDBFixGenerator) so you could get a false positive, you know the deal.
+](https://github.com/VoidEssy/FuncomDBFixGenerator) thanks to the users from Admins United: Conan Discord.
 
 ===========================================================================
 
