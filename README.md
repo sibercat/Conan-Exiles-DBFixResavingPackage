@@ -18,6 +18,6 @@ Script is looking for pattern  **LogStreaming:Error: Couldn't find file for pack
 Why is this happening ?
 Seems to have started after Funcoms barkeeper hotfix.
 
-In short **Some leftover placable actors remained in the world - after they have been removed or renamed in the mod by the mod author, or mod was removed from the server but placable actor was placed by a user prior.
+In short **Some leftover placable actors remained in the world - after they have been removed or renamed in the mod by the mod author, or mod was removed from the server but placeable actor was placed by a user prior.
 
 In theory server should clean this actors up or skip the search, but seems to be stuck on SearchForPackageOnDisk.
