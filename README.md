@@ -6,7 +6,7 @@ The script is based on [FuncomDBFixGenerator
 ](https://github.com/VoidEssy/FuncomDBFixGenerator) thanks to the users from Admins United: Conan Discord.
 
 ===========================================================================
-Basically the script is to fix:
+The script is to fix:
 <p>LogPackageName:Warning: String asset reference "None" is in short form, which is unsupported and -- even if valid -- resolving it will be really slow.</p>
 <p>LogPackageName:Warning: Please consider resaving package in order to speed-up loading.</p>
 
