@@ -13,6 +13,7 @@ The script is to fix:
 Script is looking for pattern  **LogStreaming:Error: Couldn't find file for package (.*?) requested by async loading code.'**
 
 You can remove [Core.Log] or add the lines
+
 ![alt text](https://github.com/sibercat/Conan-Exiles-DBFixResavingPackage/blob/main/preview_Image.png)
 
 ===========================================================================
