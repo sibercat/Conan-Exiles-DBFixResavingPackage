@@ -1,4 +1,4 @@
-# v1.0.6
+# v1.0.7
 import os
 import re
 import subprocess
@@ -15,16 +15,13 @@ def print_header():
     print("Before running your server, you need to modify the Engine.ini file to enable proper logging.")
     print("\nEngine.ini location:")
     print("  ConanSandbox\\Saved\\Config\\WindowsServer\\Engine.ini")
-    print("\nAdd these lines to Engine.ini:")
+    print("\nRemove this from Engine.ini:")
     print("-" * 25)
     print("[Core.Log]")
-    print("LogStreaming=Verbose")
-    print("LogPackageName=Verbose")
-    print("LogPakFile=Log")
     print("-" * 25)
     print("\nSteps:")
     print("1. Locate Engine.ini in the path mentioned above")
-    print("2. Add the logging configuration lines")
+    print("2. Remove [Core.Log]")
     print("3. Save Engine.ini")
     print("4. Start your server")
     print("5. Run this tool after server has fully loaded.")
@@ -44,8 +41,8 @@ class Config:
 
     def __post_init__(self):
         self.error_patterns = {
-            'standard_error': r'LogStreaming:Error: Couldn\'t find file for package (/Game/Mods/.*?) requested by async loading code\.',
-            'async_loading': r'LogStreaming:Error: Couldn\'t find file for package (/Game/Mods/.*?) requested by async loading code\.',
+            'standard_error': r'LogStreaming:Error: Couldn\'t find file for package (/Game/(?:Mods|ModsShared)/.*?) requested by async loading code\.',
+            'async_loading': r'LogStreaming:Error: Couldn\'t find file for package (/Game/(?:Mods|ModsShared)/.*?) requested by async loading code\.',
             # Updated to match exact C# pattern
             'nametoload': r'\[\d+\.\d+\.\d+-\d+\.\d+\.\d+\.\d+\].* NameToLoad: (.*)\n.*\n\[\d+\.\d+\.\d+-\d+\.\d+\.\d+\.\d+\].* String asset reference \"None\".*slow\.'
         }
@@ -232,7 +229,7 @@ class BlueprintFixer:
         """Let user choose which error pattern to use."""
         print("\nAvailable error patterns:")
         print("1. Standard Error Pattern (String asset reference None chunk method)")
-        print("2. Async Loading Pattern (using direct matching)")
+        print("2. Async Loading Pattern (Using direct matching. More comprehensive detection)")
         print("3. NameToLoad Pattern (Based on FuncomDBFixGenerator By VoidEssy C# style)")
         print("4. All Patterns")
         print("5. Standard + Async Patterns")
