@@ -13,7 +13,7 @@ The script is to fix:
 Script is looking for pattern  **LogStreaming:Error: Couldn't find file for package (.*?) requested by async loading code.'**
 
 You can remove [Core.Log] or add the lines
-![alt text](https://media.discordapp.net/attachments/1077995857108017344/1314704080311943228/image.png?ex=6754bd16&is=67536b96&hm=40e258eeff0e827270743f6f4d9cd7610a9134ea13e9b144b8cb94b233bde878&=&format=webp&quality=lossless)
+![alt text](https://cdn.discordapp.com/attachments/517436895387451399/1327660287817547796/image.png?ex=6783df7f&is=67828dff&hm=169c69f6375bef60a07f7f18cac00a1ee26afbec4b4a79a1dbc44eda3bee61db&)
 
 ===========================================================================
 Why is this happening ?
