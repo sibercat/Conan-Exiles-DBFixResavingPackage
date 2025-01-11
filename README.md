@@ -12,7 +12,7 @@ The script is to fix:
 
 Script is looking for pattern  **LogStreaming:Error: Couldn't find file for package (.*?) requested by async loading code.'**
 
-**Sometimes you would have to run the script one more time after clean***
+**Sometimes you would have to run the script one more time after clean**
 
 ![alt text](https://github.com/sibercat/Conan-Exiles-DBFixResavingPackage/blob/main/preview_Image.png)
 
